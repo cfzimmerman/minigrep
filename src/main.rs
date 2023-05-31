@@ -3,8 +3,6 @@ use std::process;
 
 use minigrep::Config;
 
-// Continue here: https://doc.rust-lang.org/book/ch12-06-writing-to-stderr-instead-of-stdout.html
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 

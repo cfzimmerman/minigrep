@@ -1,7 +1,4 @@
-use std::env;
-use std::error::Error;
-use std::fs;
-use std::ops::Fn;
+use std::{env, error::Error, fs, ops::Fn};
 
 pub enum SearchMode {
     CaseSensitive,
@@ -16,7 +13,7 @@ pub struct Config {
 
 pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let contents: String = fs::read_to_string(&config.file_path)?;
-    let results = search(&config.query, &contents, config.get_filter());
+    let results = search(&config.query, &contents, Config::get_filter(&config.mode));
     for line in results.iter() {
         println!("{line}");
     }
@@ -34,18 +31,6 @@ pub fn search<'a>(
     contents.lines().filter(|line| fltr(query, line)).collect()
 }
 
-/*
-*
-* Takeaways for myself (deviating from the tutorial)
-* - Passing a function seemed like a good idea, but it forced me into
-*   a very inefficient implementation of case_insensitive. That's
-*   something to think ahead about.
-* - Struct methods are hard to test outside the context of an instantiated struct.
-*   Testing case insensitive is probably only viable if I CLI parsing logic and
-*   env variable logic to helper functions.
-*
-*/
-
 impl Config {
     pub fn build(args: &[String]) -> Result<Config, &'static str> {
         if args.len() < 3 {
@@ -62,8 +47,8 @@ impl Config {
         })
     }
 
-    pub fn get_filter(&self) -> impl Fn(&str, &str) -> bool {
-        match self.mode {
+    pub fn get_filter(mode: &SearchMode) -> impl Fn(&str, &str) -> bool {
+        match mode {
             SearchMode::CaseSensitive => |query: &str, line: &str| line.contains(query),
             SearchMode::CaseInsensitive => {
                 |query: &str, line: &str| line.to_lowercase().contains(&query.to_lowercase())
@@ -77,7 +62,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn one_result() {
+    fn case_sensitive() {
         let query = "duct";
         let contents = "\
 Rust: 
@@ -86,9 +71,29 @@ Pick three.
 Duct tape";
         assert_eq!(
             vec!["safe, fast, productive."],
-            search(query, contents, |query: &str, line: &str| line
-                .to_lowercase()
-                .contains(&query.to_lowercase()))
+            search(
+                query,
+                contents,
+                Config::get_filter(&SearchMode::CaseSensitive)
+            )
         );
+    }
+
+    #[test]
+    fn case_insensitive() {
+        let query = "ruST";
+        let contents = "\
+Rust:
+save, fast, productive. 
+Pick three.
+Trust me";
+        assert_eq!(
+            vec!["Rust:", "Trust me"],
+            search(
+                query,
+                contents,
+                Config::get_filter(&SearchMode::CaseInsensitive)
+            )
+        )
     }
 }
