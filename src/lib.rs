@@ -32,17 +32,17 @@ pub fn search<'a>(
 }
 
 impl Config {
-    pub fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() < 3 {
-            return Err("missing arguments: (example: -- keyword file.txt)");
-        }
+    pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
+        args.next();
+        let query = args.next().ok_or("Missing query string")?;
+        let file_path = args.next().ok_or("Missing file path")?;
         let mode = match env::var("IGNORE_CASE") {
             Err(_) => SearchMode::CaseSensitive,
             Ok(_) => SearchMode::CaseInsensitive,
         };
         Ok(Config {
-            query: args[1].clone(),
-            file_path: args[2].clone(),
+            query,
+            file_path,
             mode,
         })
     }
